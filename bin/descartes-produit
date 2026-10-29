@@ -1,0 +1,35 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "descartes"
+begin
+  require_relative "../lib/descartes/hub"
+rescue LoadError
+  require "descartes/hub"
+end
+require "puma"
+require "puma/configuration"
+require "puma/launcher"
+require "optparse"
+
+port = ENV["PORT"] ? ENV["PORT"].to_i : 8080
+host = ENV["HOST"] || "0.0.0.0"
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: descartes-produit [options]"
+  opts.on("-p", "--port PORT", Integer, "Port to listen on (default: 8080)") { |v| port = v }
+  opts.on("-h", "--host HOST", String, "Host to bind to (default: 0.0.0.0)") { |v| host = v }
+end.parse!
+
+app = Descartes::Hub::Server.new
+puts "[Descartes::Produit] Starting server on http://#{host}:#{port} and ws://#{host}:#{port}"
+
+conf = Puma::Configuration.new do |user_config|
+  user_config.bind "tcp://#{host}:#{port}"
+  user_config.app app
+  user_config.threads 1, 16
+  user_config.environment ENV["RACK_ENV"] || "development"
+end
+
+launcher = Puma::Launcher.new(conf)
+launcher.run

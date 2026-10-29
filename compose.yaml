@@ -1,0 +1,16 @@
+services:
+  descartes-produit:
+    image: descartes-produit:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: descartes-produit
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      - PORT=8089
+      - HOST=0.0.0.0
+      - DEFAULT_LLM_PROFILE=deepseek_v3
+    volumes:
+      - ./llm.yml:/app/llm.yml:ro

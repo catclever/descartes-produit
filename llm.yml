@@ -1,0 +1,40 @@
+default:
+  format: "openai"
+  base_url: "http://172.16.51.7:48787/v1"
+  model: "deepseek-v4.1-flash"
+  api_key: "dummy"
+  max_tokens: 8192
+  timeout: 120
+
+workbuddy-deepseek:
+  format: "openai"
+  base_url: "http://172.16.51.7:48787/v1"
+  model: "deepseek-v4.1-flash"
+  api_key: "dummy"
+  max_tokens: 8192
+  timeout: 120
+
+openai:
+  format: "openai"
+  base_url: "http://172.16.51.7:48787/v1"
+  model: "deepseek-v4.1-flash"
+  api_key: "dummy"
+  max_tokens: 8192
+  timeout: 120
+
+kimi:
+  format: "openai"
+  base_url: "https://api.moonshot.cn/v1"
+  model: "kimi-k2.6"
+  api_key: "YOUR_KIMI_API_KEY_HERE"
+  max_tokens: 8192
+  timeout: 120
+
+glm:
+  format: "openai"
+  base_url: "https://open.bigmodel.cn/api/coding/paas/v4"
+  model: "glm-4.7"
+  api_key: "YOUR_GLM_API_KEY_HERE"
+  temperature: 0.95
+  max_tokens: 8192
+  timeout: 120
