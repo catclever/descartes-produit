@@ -4,11 +4,11 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/Version-0.2.0-green.svg)](lib/descartes/hub/version.rb)
 
-**面向 Descartes Agent 框架的高并发分布式 WebSocket 服务中心。**
+**面向 [Descartes](https://github.com/catclever/Descartes) Agent 框架的高并发分布式 WebSocket 服务中心。**
 
-> *"Soul in Cloud, Body at Edge"（云端构筑灵魂，边缘驱动肉身）*
+> *"Soul in Cloud, Body at Edge"（云端构筑灵魂，边缘驱动肉身）* —— 基于 **[Descartes](https://github.com/catclever/Descartes)** 打造
 
-Descartes Produit 将 AI Agent 的推理中枢与端侧执行完全解耦：LLM 推理、会话状态机与 ReAct 循环集中运行于云端 Hub，而敏感私有工具执行与系统权限完全保留在边缘客户端。
+Descartes Produit 将 AI Agent 的推理中枢与端侧执行完全解耦：依托 [Descartes](https://github.com/catclever/Descartes) 的 ReAct 与事件引擎在云端运行，而敏感私有工具执行与系统权限完全保留在边缘客户端。
 
 ---
 
@@ -44,9 +44,8 @@ Descartes Produit 将 AI Agent 的推理中枢与端侧执行完全解耦：LLM 
 在项目的 `Gemfile` 中添加：
 
 ```ruby
-gem 'descartes-produit', path: '../descartes-produit'
-# 或引用 GitHub:
-# gem 'descartes-produit', github: 'catclever/descartes-produit'
+gem 'descartes', github: 'catclever/Descartes'
+gem 'descartes-produit', github: 'catclever/descartes-produit'
 ```
 
 然后执行：

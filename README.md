@@ -4,11 +4,11 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/Version-0.2.0-green.svg)](lib/descartes/hub/version.rb)
 
-**High-concurrency, distributed WebSocket Hub service for the Descartes Agent framework.**
+**High-concurrency, distributed WebSocket Hub service for the [Descartes](https://github.com/catclever/Descartes) Agent framework.**
 
-> *"Soul in Cloud, Body at Edge"*
+> *"Soul in Cloud, Body at Edge"* — Built on top of **[Descartes](https://github.com/catclever/Descartes)**
 
-Descartes Produit decouples the Agent's reasoning brain from edge execution: the LLM reasoning, state machines, and ReAct loops reside centrally on the cloud Hub, while private tool execution and sensitive system permissions remain on the edge client.
+Descartes Produit acts as the centralized cloud brain for distributed agents. It coordinates the **Cartesian Product ($A \times B$)** between centralized cloud reasoning (powered by [Descartes](https://github.com/catclever/Descartes)) and decentralized edge execution (local developer machines, private shells, databases).
 
 ---
 
@@ -70,12 +70,11 @@ In traditional agent systems, executing private tools requires giving cloud cont
 
 ## 🛠 Installation
 
-Add `descartes-produit` to your Gemfile:
+Add `descartes` and `descartes-produit` to your Gemfile:
 
 ```ruby
-gem 'descartes-produit', path: '../descartes-produit'
-# or from GitHub:
-# gem 'descartes-produit', github: 'catclever/descartes-produit'
+gem 'descartes', github: 'catclever/Descartes'
+gem 'descartes-produit', github: 'catclever/descartes-produit'
 ```
 
 And install dependencies:
