@@ -47,6 +47,10 @@ build-iPhoneSimulator/
 # rspec failure tracking
 .rspec_status
 
+# Local LLM configuration
+llm.yml
+llm.local.yml
+
 # ID or OS specific files
 .DS_Store
 .idea/

@@ -1,0 +1,44 @@
+# llm.example.yml - Example model profile configuration
+# Copy this file to llm.yml and fill in your actual API keys or base URLs.
+# Supports environment variables in api_key: "ENV['DEEPSEEK_API_KEY']" or "${DEEPSEEK_API_KEY}".
+
+default:
+  format: "openai"
+  base_url: "https://api.deepseek.com/v1"
+  model: "deepseek-chat"
+  api_key: "ENV['DEEPSEEK_API_KEY']"
+  max_tokens: 8192
+  timeout: 120
+
+deepseek:
+  format: "openai"
+  base_url: "https://api.deepseek.com/v1"
+  model: "deepseek-chat"
+  api_key: "ENV['DEEPSEEK_API_KEY']"
+  max_tokens: 8192
+  timeout: 120
+
+openai:
+  format: "openai"
+  base_url: "https://api.openai.com/v1"
+  model: "gpt-4o"
+  api_key: "ENV['OPENAI_API_KEY']"
+  max_tokens: 8192
+  timeout: 120
+
+kimi:
+  format: "openai"
+  base_url: "https://api.moonshot.cn/v1"
+  model: "kimi-k2.6"
+  api_key: "ENV['KIMI_API_KEY']"
+  max_tokens: 8192
+  timeout: 120
+
+glm:
+  format: "openai"
+  base_url: "https://open.bigmodel.cn/api/coding/paas/v4"
+  model: "glm-4.7"
+  api_key: "ENV['GLM_API_KEY']"
+  temperature: 0.95
+  max_tokens: 8192
+  timeout: 120

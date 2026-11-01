@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY . .
 
+# Ensure llm.yml exists from example if not mounted or present
+RUN if [ ! -f llm.yml ] && [ -f llm.example.yml ]; then cp llm.example.yml llm.yml; fi
+
 # Install dependencies (descartes, llm_json and ruby_llm will be fetched from GitHub if not local)
 RUN bundle install
 
