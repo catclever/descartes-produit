@@ -10,6 +10,12 @@ else
   gem "descartes", path: "../descartes"
 end
 
+if ENV["CI"] || !Dir.exist?(File.expand_path("../Dalembert", __dir__))
+  gem "dalembert", github: "catclever/Dalembert"
+else
+  gem "dalembert", path: "../Dalembert"
+end
+
 if ENV["CI"] || !Dir.exist?(File.expand_path("../llm_json", __dir__))
   gem "llm_json", github: "catclever/llm_json"
   gem "ruby_llm", github: "catclever/ruby_llm"

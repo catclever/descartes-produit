@@ -15,26 +15,25 @@ RSpec.describe Descartes::Hub::Session do
   end
 
   describe "#handle_message" do
-    context "when handling init message" do
-      let(:init_msg) do
-        {
-          type: "init",
-          task_name: "test_task",
-          prompt: "Say hello",
-          system_prompt: "You are a bot",
-          llm_profile: "openai",
-          tools: [
-            {
-              name: "remote_tool",
-              description: "A tool",
-              parameters: { type: "object", properties: {}, required: [] }
-            }
-          ]
-        }.to_json
-      end
+    let(:init_msg) do
+      {
+        type: "init",
+        task_name: "test_task",
+        prompt: "Say hello",
+        system_prompt: "You are a bot",
+        llm_profile: "openai",
+        tools: [
+          {
+            name: "remote_tool",
+            description: "A tool",
+            parameters: { type: "object", properties: {}, required: [] }
+          }
+        ]
+      }.to_json
+    end
 
+    context "when handling init message" do
       it "transitions to :running state and spawns thread" do
-        # Mocking the agent to avoid real LLM calls in tests
         agent_double = instance_double("Descartes::Agent::Base")
         allow(Descartes::Agent::Base).to receive(:new).and_return(agent_double)
         allow(agent_double).to receive(:execute).and_return("done")
@@ -46,6 +45,24 @@ RSpec.describe Descartes::Hub::Session do
 
         session.thread.join
         expect(session.state).to eq(:finished)
+      end
+
+      it "injects Dalembert 5 intelligence tools into the agent" do
+        agent_double = instance_double("Descartes::Agent::Base")
+        expect(Descartes::Agent::Base).to receive(:new) do |args|
+          expect(args[:tools]).to include(
+            Dalembert::Tools::GithubRepoSurvey,
+            Dalembert::Tools::GithubCodeSearch,
+            Dalembert::Tools::DocFetcher,
+            Dalembert::Tools::SpecInspector,
+            Dalembert::Tools::KnowledgeStoreTool
+          )
+          agent_double
+        end
+        allow(agent_double).to receive(:execute).and_return("done")
+
+        session.handle_message(init_msg)
+        session.thread.join
       end
 
       it "uses ENV['DEFAULT_LLM_PROFILE'] when llm_profile is omitted in init" do
@@ -111,6 +128,52 @@ RSpec.describe Descartes::Hub::Session do
       end
     end
 
+    context "when handling execute_tool message from client" do
+      let(:channel) { instance_double("Channel", send: nil) }
+      let(:session_with_channel) { described_class.new(channel: channel, logger: logger) }
+
+      it "dispatches to Dalembert tool and sends tool_result" do
+        survey_double = instance_double(Dalembert::Tools::GithubRepoSurvey)
+        allow(Dalembert::Tools::GithubRepoSurvey).to receive(:new).and_return(survey_double)
+        allow(survey_double).to receive(:execute).with({ "query" => "ruby" }).and_return("Repo Blueprint")
+
+        expect(channel).to receive(:send) do |raw_payload|
+          data = JSON.parse(raw_payload, symbolize_names: true)
+          expect(data[:type]).to eq("tool_result")
+          expect(data[:call_id]).to eq("call_456")
+          expect(data[:output]).to eq("Repo Blueprint")
+        end
+
+        msg = {
+          type: "execute_tool",
+          call_id: "call_456",
+          tool: "survey_architecture",
+          arguments: { query: "ruby" }
+        }.to_json
+
+        session_with_channel.handle_message(msg)
+        sleep 0.1
+      end
+
+      it "returns error output when tool is unknown" do
+        expect(channel).to receive(:send) do |raw_payload|
+          data = JSON.parse(raw_payload, symbolize_names: true)
+          expect(data[:type]).to eq("tool_result")
+          expect(data[:call_id]).to eq("call_789")
+          expect(data[:output]).to include("Error: Unknown cloud tool")
+        end
+
+        msg = {
+          type: "execute_tool",
+          call_id: "call_789",
+          tool: "non_existent_tool",
+          arguments: {}
+        }.to_json
+
+        session_with_channel.handle_message(msg)
+      end
+    end
+
     it "raises ParseError for invalid JSON" do
       expect { session.handle_message("invalid") }.to raise_error(Descartes::Hub::Protocol::ParseError)
     end
@@ -129,7 +192,6 @@ RSpec.describe Descartes::Hub::Session do
 
   describe "#terminate!" do
     it "kills the thread and transitions to :aborted" do
-      # Create a thread that loops forever
       session.instance_variable_set(:@thread, Thread.new { loop { sleep 0.1 } })
       session.instance_variable_set(:@state, :running)
 

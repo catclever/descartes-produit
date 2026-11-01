@@ -3,6 +3,11 @@
 require "json"
 require "logger"
 require "descartes"
+begin
+  require "dalembert"
+rescue LoadError
+  # Fallback if dalembert is missing
+end
 require_relative "protocol"
 
 module Descartes
@@ -37,6 +42,8 @@ module Descartes
           handle_init(payload)
         when "tool_result"
           handle_tool_result(payload)
+        when "execute_tool"
+          handle_execute_tool(payload)
         else
           @logger.warn "[Session #{@session_id}] Ignored message type: #{payload[:type]}"
         end
@@ -98,11 +105,26 @@ module Descartes
           build_remote_tool_class(tool_schema)
         end
 
+        # Inject Dalembert 5 intelligence tools
+        dalembert_tools = if defined?(Dalembert::Tools)
+                            [
+                              Dalembert::Tools::GithubRepoSurvey,
+                              Dalembert::Tools::GithubCodeSearch,
+                              Dalembert::Tools::DocFetcher,
+                              Dalembert::Tools::SpecInspector,
+                              Dalembert::Tools::KnowledgeStoreTool
+                            ]
+                          else
+                            []
+                          end
+
+        all_tools = remote_tools + dalembert_tools
+
         @agent = Descartes::Agent::Base.new(
           name: "hub_agent_#{@session_id}",
           profile_name: llm_profile,
           system_prompt: system_prompt,
-          tools: remote_tools,
+          tools: all_tools,
           logger: @logger
         )
 
@@ -149,6 +171,51 @@ module Descartes
       def handle_tool_result(payload)
         # Push payload to queue to unblock the waiting tool
         @message_queue.push(payload)
+      end
+
+      def handle_execute_tool(payload)
+        call_id = payload[:call_id]
+        tool_name = payload[:tool]
+        args = (payload[:arguments] || {}).transform_keys(&:to_s)
+
+        @logger.info "[Session #{@session_id}] Cloud Hub received execute_tool: #{tool_name} (call_id: #{call_id})"
+
+        tool_class = resolve_dalembert_tool(tool_name)
+        if tool_class.nil?
+          error_msg = Protocol.build(:tool_result, call_id: call_id, output: "Error: Unknown cloud tool '#{tool_name}'")
+          send_message(error_msg)
+          return
+        end
+
+        Thread.new do
+          output = tool_class.new.execute(args)
+          result_msg = Protocol.build(:tool_result, call_id: call_id, output: output.to_s)
+          @logger.info "[Session #{@session_id}] Cloud Hub responding tool_result for #{tool_name} (call_id: #{call_id})"
+          send_message(result_msg)
+        rescue StandardError => e
+          @logger.error "[Session #{@session_id}] Error executing #{tool_name}: #{e.message}"
+          error_msg = Protocol.build(:tool_result, call_id: call_id, output: "Error executing #{tool_name}: #{e.message}")
+          send_message(error_msg)
+        end
+      end
+
+      def resolve_dalembert_tool(tool_name)
+        return nil unless defined?(Dalembert::Tools)
+
+        case tool_name.to_s
+        when "github_repo_survey", "survey_architecture"
+          Dalembert::Tools::GithubRepoSurvey
+        when "github_code_search", "search_code_examples"
+          Dalembert::Tools::GithubCodeSearch
+        when "doc_fetcher", "fetch_doc"
+          Dalembert::Tools::DocFetcher
+        when "spec_inspector", "inspect_spec"
+          Dalembert::Tools::SpecInspector
+        when "knowledge_store"
+          Dalembert::Tools::KnowledgeStoreTool
+        else
+          nil
+        end
       end
 
       def build_remote_tool_class(schema)
