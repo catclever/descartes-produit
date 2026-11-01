@@ -3,6 +3,7 @@
 require "faye/websocket"
 require "json"
 require "logger"
+require "rack"
 require "descartes"
 require_relative "session"
 require_relative "version"
@@ -20,6 +21,29 @@ module Descartes
       end
 
       def call(env)
+        req = Rack::Request.new(env)
+
+        # Allow open health check probes without authentication
+        if req.path_info.match?(%r{\A/healthz?\z}) && !Faye::WebSocket.websocket?(env)
+          body = JSON.generate({
+                                 status: "ok",
+                                 service: "descartes-hub",
+                                 version: Descartes::Hub::VERSION,
+                                 active_sessions: @sessions.size
+                               })
+          return [200, { "Content-Type" => "application/json" }, [body]]
+        end
+
+        # Authenticate if HUB_AUTH_TOKEN is configured in environment
+        auth_token = ENV["HUB_AUTH_TOKEN"]&.strip
+        if auth_token && !auth_token.empty?
+          token = extract_token(env, req)
+          unless token == auth_token
+            @logger.warn "[Descartes::Hub::Server] Unauthorized connection attempt blocked from #{req.ip}"
+            return [401, { "Content-Type" => "application/json" }, [JSON.generate({ error: "Unauthorized: Invalid or missing HUB_AUTH_TOKEN" })]]
+          end
+        end
+
         if Faye::WebSocket.websocket?(env)
           ws = Faye::WebSocket.new(env, nil, { ping: KEEPALIVE_TIME })
 
@@ -59,6 +83,17 @@ module Descartes
                                  active_sessions: @sessions.size
                                })
           [200, { "Content-Type" => "application/json" }, [body]]
+        end
+      end
+
+      private
+
+      def extract_token(env, req)
+        auth_header = env["HTTP_AUTHORIZATION"]
+        if auth_header && auth_header.start_with?("Bearer ")
+          auth_header.sub(/^Bearer /, "").strip
+        elsif req.params["token"]
+          req.params["token"].strip
         end
       end
     end
