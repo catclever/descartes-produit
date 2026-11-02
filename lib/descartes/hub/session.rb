@@ -145,16 +145,25 @@ module Descartes
         @thread = Thread.new do
           result = @agent.execute(context, prompt)
 
-          @mutex.synchronize do
-            @state = :finished
+          if result.is_a?(String) && result.start_with?("Error:")
+            @mutex.synchronize do
+              @state = :aborted
+            end
+            error_msg = Protocol.build(:error, message: result)
+            @logger.warn "[Session #{@session_id}] Hub Message Out: #{error_msg}"
+            send_message(error_msg)
+          else
+            @mutex.synchronize do
+              @state = :finished
+            end
+
+            # Send finished msg
+            finished_msg = Protocol.build(:finished, result: result, status: "ok")
+            @logger.info "[Session #{@session_id}] Hub Message Out: #{finished_msg}"
+            send_message(finished_msg)
+
+            @logger.info "[Session #{@session_id}] Finished successfully."
           end
-
-          # Send finished msg
-          finished_msg = Protocol.build(:finished, result: result, status: "ok")
-          @logger.info "[Session #{@session_id}] Hub Message Out: #{finished_msg}"
-          send_message(finished_msg)
-
-          @logger.info "[Session #{@session_id}] Finished successfully."
         rescue StandardError => e
           @mutex.synchronize do
             @state = :aborted
@@ -188,7 +197,7 @@ module Descartes
         end
 
         Thread.new do
-          output = tool_class.new.execute(args)
+          output = tool_class.new(nil).execute(args)
           result_msg = Protocol.build(:tool_result, call_id: call_id, output: output.to_s)
           @logger.info "[Session #{@session_id}] Cloud Hub responding tool_result for #{tool_name} (call_id: #{call_id})"
           send_message(result_msg)
