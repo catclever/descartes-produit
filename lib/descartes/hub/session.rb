@@ -229,7 +229,7 @@ module Descartes
           # We define class methods directly using the schema
           name schema[:name]
           description schema[:description]
-          parameters schema[:parameters]
+          parameters(schema[:parameters] || schema[:inputSchema] || schema[:input_schema] || {})
 
           # Use closures to access queue and other session state
           define_method :execute do |args|
