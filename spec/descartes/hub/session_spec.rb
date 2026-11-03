@@ -106,6 +106,46 @@ RSpec.describe Descartes::Hub::Session do
         session.handle_message(msg_without_profile)
         session.thread.join
       end
+
+      it "passes max_turns from payload to Descartes::Agent::Base.new" do
+        agent_double = instance_double("Descartes::Agent::Base")
+        expect(Descartes::Agent::Base).to receive(:new)
+          .with(hash_including(max_turns: 50))
+          .and_return(agent_double)
+        allow(agent_double).to receive(:execute).and_return("done")
+
+        msg_with_turns = {
+          type: "init",
+          task_name: "test_task",
+          prompt: "Say hello",
+          max_turns: 50,
+          tools: []
+        }.to_json
+
+        session.handle_message(msg_with_turns)
+        session.thread.join
+      end
+
+      it "uses ENV['MAX_TURNS'] when max_turns is omitted from payload" do
+        agent_double = instance_double("Descartes::Agent::Base")
+        expect(Descartes::Agent::Base).to receive(:new)
+          .with(hash_including(max_turns: 45))
+          .and_return(agent_double)
+        allow(agent_double).to receive(:execute).and_return("done")
+
+        allow(ENV).to receive(:[]).and_call_original
+        allow(ENV).to receive(:[]).with("MAX_TURNS").and_return("45")
+
+        msg = {
+          type: "init",
+          task_name: "test_task",
+          prompt: "Say hello",
+          tools: []
+        }.to_json
+
+        session.handle_message(msg)
+        session.thread.join
+      end
     end
 
     context "when handling tool_result message" do

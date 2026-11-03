@@ -120,13 +120,18 @@ module Descartes
 
         all_tools = remote_tools + dalembert_tools
 
-        @agent = Descartes::Agent::Base.new(
+        agent_kwargs = {
           name: "hub_agent_#{@session_id}",
           profile_name: llm_profile,
           system_prompt: system_prompt,
           tools: all_tools,
           logger: @logger
-        )
+        }
+
+        max_turns = payload[:max_turns] || payload["max_turns"] || ENV["MAX_TURNS"]
+        agent_kwargs[:max_turns] = max_turns.to_i if max_turns && max_turns.to_i > 0
+
+        @agent = Descartes::Agent::Base.new(**agent_kwargs)
 
         if @agent.respond_to?(:on)
           @agent.on(:thought) do |text|
